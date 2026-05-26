@@ -1,27 +1,50 @@
 name: Build & upload toolchain
+
 on:
-  push:
-    branches:
-      - master
-  schedule:
-    # 3 PM PST on Saturdays
-    - cron: '0 22 * * SAT'
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
-    steps:
-      - name: Download scripts
-        uses: actions/checkout@v2
 
-      - name: Deploy builder
-        env:
-          PACKET_TOKEN: ${{ secrets.PACKET_TOKEN }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          PACKET_SSH_KEY: ${{ secrets.PACKET_SSH_KEY }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          GIT_AUTHOR_NAME: ${{ secrets.GIT_AUTHOR_NAME }}
-          GIT_AUTHOR_EMAIL: ${{ secrets.GIT_AUTHOR_EMAIL }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
         run: |
-          ci/launch.sh
+          sudo apt update
+          sudo apt install -y \
+            clang \
+            lld \
+            llvm \
+            gcc-12 \
+            g++-12 \
+            libstdc++-12-dev \
+            libc6-dev \
+            build-essential \
+            python3 \
+            ninja-build \
+            cmake
+
+      - name: Verify toolchain
+        run: |
+          g++-12 --version
+          clang++ --version
+          echo '#include <cstdint>
+          uintptr_t x;' > test.cpp
+          g++-12 test.cpp -c
+
+      - name: Install project deps
+        run: bash ci.sh deps
+
+      - name: Build LLVM
+        env:
+          CC: gcc-12
+          CXX: g++-12
+        run: bash build-toolchain.sh
+
+      - name: GitHub release
+        run: bash ci.sh release
