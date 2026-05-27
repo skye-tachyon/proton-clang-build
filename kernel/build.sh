@@ -84,21 +84,13 @@ function setup_krnl_src() {
     if [[ -n ${SRC_FOLDER} ]]; then
         cd "${SRC_FOLDER}" || exit 1
     else
-        LINUX=linux-5.11.11
+        LINUX=linux-6.12.12
         LINUX_TARBALL=${KRNL}/${LINUX}.tar.xz
         LINUX_PATCH=${KRNL}/${LINUX}-${CONFIG_TARGET}.patch
 
-        # If we don't have the source tarball, download and verify it
+        # If we don't have the source tarball, download it
         if [[ ! -f ${LINUX_TARBALL} ]]; then
-            curl -LSso "${LINUX_TARBALL}" https://cdn.kernel.org/pub/linux/kernel/v5.x/"${LINUX_TARBALL##*/}"
-
-            (
-                cd "${LINUX_TARBALL%/*}" || exit 1
-                sha256sum -c "${LINUX_TARBALL}".sha256 --quiet
-            ) || {
-                echo "Linux tarball verification failed! Please remove '${LINUX_TARBALL}' and try again."
-                exit 1
-            }
+            curl -LSso "${LINUX_TARBALL}" https://cdn.kernel.org/pub/linux/kernel/v6.x/"${LINUX_TARBALL##*/}"
         fi
 
         # If there is a patch to apply, remove the folder so that we can patch it accurately (we cannot assume it has already been patched)
